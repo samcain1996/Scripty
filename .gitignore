@@ -2,5 +2,5 @@
 *.*
 
 # Do Not Ignore Source Files in Scripty/
-!Scripty/*.h
-!Scripty/*.cpp
+!Scripty/Scripty/*.h
+!Scripty/Scripty/*.cpp
