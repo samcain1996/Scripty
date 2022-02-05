@@ -5,9 +5,9 @@ using std::string;
 using std::istream;
 using std::stringstream;
 
-static const int LETTER_MIN		= 65;  // Decimal representation of 'a'
-static const int LETTER_MAX		= 90;  // Deciaml representation of 'z'
-static const int CAPS_DISTANCE	= 32;  // Distance between lower case and upper case counterpart
+static const int LETTER_MIN    = 65;  // Decimal representation of 'a'
+static const int LETTER_MAX    = 90;  // Deciaml representation of 'z'
+static const int CAPS_DISTANCE = 32;  // Distance between lower case and upper case counterpart
 
 static int FILE_NAME_LEN = 20;  // File name length
 
@@ -54,10 +54,10 @@ void ChangeExecutionPolicy()
 }
 
 /**
- * @brief Generate unique file name in current directory
+ * @brief			Generate unique file name in current directory
  *
- * @param fileType 		extension of file name (.txt, .csv, etc...)
- * @return std::string  file name
+ * @param fileType	Extension of file name (.txt, .csv, etc...)
+ * @return string	File name
  */
 string GenerateUniqueNameInDir(const string& fileType = ".txt")
 {
@@ -74,11 +74,7 @@ string GenerateUniqueNameInDir(const string& fileType = ".txt")
 		fileName += fileType;
 
 		// Check if fileName is unique
-		if (exists(current_path().append(fileName)))
-		{
-			uniqueName = false;
-			break;
-		}
+		if (exists(current_path().append(fileName))) { break; }
 
 	} while (!uniqueName);
 
@@ -87,8 +83,8 @@ string GenerateUniqueNameInDir(const string& fileType = ".txt")
 
 /**
  * @brief Seeds random number generator
- * 
- * @param seed 
+ *
+ * @param seed
  */
 void SeedGenerator(unsigned int seed)
 {
@@ -96,6 +92,15 @@ void SeedGenerator(unsigned int seed)
 	seeded = true;
 }
 
+/**
+ * @brief Initializes Scripty
+ *
+ * @param changeExecutionPolicyAllowed		Defines if Scripty is allowed to modify
+ *											the current user's ExecutionPolicy
+ * @param seed								Seed for random number generator
+ * @param FN_LEN							Length of temporary file names
+ * @return									Whether Scripty successfully initialized
+ */
 bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned int FN_LEN)
 {
 	using namespace std;
@@ -130,7 +135,7 @@ bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned 
 
 /**
  * @brief Runs script and returns results as stringstream
- * 
+ *
  * @param script    script to run as istream
  * @return          results of script as stringstream
  */
@@ -150,8 +155,8 @@ stringstream runScript(istream& script)
 		if (allowExecPolicyChange) { ChangeExecutionPolicy(); }
 		else
 		{
-			resStream << "Execution policy prevents scripts from running on this system.\nCall ScriptyInit(true) to rectify."; 
-			return resStream; 
+			resStream << "Execution policy prevents scripts from running on this system.\nCall ScriptyInit(true) to rectify.";
+			return resStream;
 		}
 	}
 
