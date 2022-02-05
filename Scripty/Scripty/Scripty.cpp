@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "Scripty.h"
 
+using std::string;
+using std::istream;
+using std::stringstream;
+
 static const int LETTER_MIN		= 65;  // Decimal representation of 'a'
 static const int LETTER_MAX		= 90;  // Deciaml representation of 'z'
 static const int CAPS_DISTANCE	= 32;  // Distance between lower case and upper case counterpart
@@ -11,13 +15,75 @@ static bool seeded = false;     // Flag to check whether generator has been seed
 
 static bool allowExecPolicyChange = false;  // Flag to check whether the ExecutionPolicy is allowed to be changed
 
-static std::string origExecPolicy = "";     // ExecutionPolicy prior to running Scripty
-static std::string currExecPolicy = "";     // Current ExecutionPolicy
+static string origExecPolicy = "";     // ExecutionPolicy prior to running Scripty
+static string currExecPolicy = "";     // Current ExecutionPolicy
 
-// Function Prototypes
-char RandChar();
-std::string GenerateUniqueNameInDir(const std::string& = ".txt");
-void ChangeExecutionPolicy();
+/**
+ * @brief  Return a random alphanumeric character
+ *
+ * @return char alphanumeric character
+ */
+char RandChar()
+{
+	if (!seeded) { SeedGenerator((unsigned int)time(0)); }  // Seed random number generator
+
+	char letter = (char)((rand() % (LETTER_MAX - LETTER_MIN)) + LETTER_MIN + 1);
+
+	// 50/50 chance to capitalize letter
+	if (rand() % 2) { letter += CAPS_DISTANCE; }
+
+	return letter;
+}
+
+/**
+ * @brief Change execution policy between "Restricted" and "Unrestricted",
+ *		  if allowed by allowExecPolicyChange
+ */
+void ChangeExecutionPolicy()
+{
+	if (currExecPolicy == "Unrestricted")
+	{
+		system(string("powershell Set-ExecutionPolicy " + origExecPolicy + " - Scope CurrentUser").c_str());
+		currExecPolicy = origExecPolicy;
+	}
+	else
+	{
+		system("powershell Set-ExecutionPolicy Unrestricted -Scope CurrentUser");
+		currExecPolicy = "Unrestricted";
+	}
+}
+
+/**
+ * @brief Generate unique file name in current directory
+ *
+ * @param fileType 		extension of file name (.txt, .csv, etc...)
+ * @return std::string  file name
+ */
+string GenerateUniqueNameInDir(const string& fileType = ".txt")
+{
+	using namespace std::filesystem;
+
+	string fileName;
+	bool uniqueName = false;
+	do
+	{
+		uniqueName = true;  // Assume fileName is unqiue
+
+		// Generate fileName
+		for (size_t index = 0; index < FILE_NAME_LEN; index++) { fileName += RandChar(); }
+		fileName += fileType;
+
+		// Check if fileName is unique
+		if (exists(current_path().append(fileName)))
+		{
+			uniqueName = false;
+			break;
+		}
+
+	} while (!uniqueName);
+
+	return fileName;
+}
 
 /**
  * @brief Seeds random number generator
@@ -35,7 +101,7 @@ bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned 
 	using namespace std;
 	using namespace std::filesystem;
 
-	if (FN_LEN > 10) { FILE_NAME_LEN = FN_LEN; }
+	if (FN_LEN >= 10) { FILE_NAME_LEN = FN_LEN; }
 	allowExecPolicyChange = changeExecutionPolicyAllowed;
 
 	if (!seeded) { SeedGenerator(seed); }  // Seed random number generator
@@ -58,7 +124,7 @@ bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned 
 	currExecPolicy = origExecPolicy;
 
 	// Determine if scripts are runnable based on execution policy
-	if (result == "Restricted" && !allowExecPolicyChange) { return false; }
+	if (result != "Unrestricted" && !allowExecPolicyChange) { return false; }
 	return true;
 }
 
@@ -68,7 +134,7 @@ bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned 
  * @param script    script to run as istream
  * @return          results of script as stringstream
  */
-std::stringstream runScript(std::istream& script)
+stringstream runScript(istream& script)
 {
 	using namespace std;
 	using namespace std::filesystem;
@@ -78,7 +144,7 @@ std::stringstream runScript(std::istream& script)
 	if (!seeded) { ScriptyInit(); }  // Seed random number generator
 
 	// Check if scripts can run
-	if (currExecPolicy == "Restricted")
+	if (currExecPolicy != "Unrestricted")
 	{
 		// If not, see if the execution policy can be changed
 		if (allowExecPolicyChange) { ChangeExecutionPolicy(); }
@@ -122,70 +188,4 @@ std::stringstream runScript(std::istream& script)
 	remove(resFN);
 
 	return resStream;
-}
-
-/**
- * @brief  Return a random alphanumeric character
- *
- * @return char alphanumeric character
- */
-char RandChar()
-{
-	if (!seeded) { SeedGenerator((unsigned int)time(0)); }  // Seed random number generator
-
-	char letter = (char)((rand() % (LETTER_MAX - LETTER_MIN)) + LETTER_MIN + 1);
-
-	// 50/50 chance to capitalize letter
-	if (rand() % 2) { letter += CAPS_DISTANCE; }
-
-	return letter;
-}
-
-void ChangeExecutionPolicy()
-{
-	if (currExecPolicy == "Unrestricted")
-	{
-		system("powershell Set-ExecutionPolicy Restricted -Scope CurrentUser");
-		currExecPolicy = "Restricted";
-	}
-	else
-	{
-		system("powershell Set-ExecutionPolicy Unrestricted -Scope CurrentUser");
-		currExecPolicy = "Unrestricted";
-	}
-}
-
-/**
- * @brief Generate unique file name in current directory
- *
- * @param fileType 		extension of file name (.txt, .csv, etc...)
- * @return std::string  file name
- */
-std::string GenerateUniqueNameInDir(const std::string& fileType = ".txt")
-{
-	using namespace std;
-	using namespace std::filesystem;
-
-	string fileName;
-	bool uniqueName = false;
-	do
-	{
-		uniqueName = true;  // Assume fileName is unqiue
-
-		// Generate fileName
-		for (size_t index = 0; index < FILE_NAME_LEN; index++) { fileName += RandChar(); }
-
-		// Check if fileName is unique
-		for (const auto& file : directory_iterator{ current_path() })
-		{
-			if (!file.is_directory() && file.path().filename() == fileName)
-			{
-				uniqueName = false;
-				break;
-			}
-		}
-
-	} while (!uniqueName);
-
-	return string(fileName + fileType);
 }
