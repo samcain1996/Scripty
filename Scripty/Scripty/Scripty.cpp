@@ -1,15 +1,19 @@
 #include "pch.h"
-#include "Scripty.h"
+#include "Scripty.hpp"
 
+using std::clog;
 using std::string;
 using std::istream;
+using std::ostream;
 using std::stringstream;
+
+using scripty::LogLevel;
 
 static const int LETTER_MIN    = 65;  // Decimal representation of 'a'
 static const int LETTER_MAX    = 90;  // Deciaml representation of 'z'
 static const int CAPS_DISTANCE = 32;  // Distance between lower case and upper case counterpart
 
-static int FILE_NAME_LEN = 20;  // File name length
+static int FILE_NAME_LEN = 10;  // File name length
 
 static bool seeded = false;     // Flag to check whether generator has been seeded
 
@@ -18,19 +22,23 @@ static bool allowExecPolicyChange = false;  // Flag to check whether the Executi
 static string origExecPolicy = "";     // ExecutionPolicy prior to running Scripty
 static string currExecPolicy = "";     // Current ExecutionPolicy
 
+static LogLevel logLevel = LogLevel::NOTIFICATIONS;  // Default logging only logs notifications
+
 /**
  * @brief  Return a random alphanumeric character
  *
  * @return char alphanumeric character
  */
-char RandChar()
+static char RandChar()
 {
-	if (!seeded) { SeedGenerator((unsigned int)time(0)); }  // Seed random number generator
+	if (!seeded) { scripty::SeedGenerator((unsigned int)time(0)); }  // Seed random number generator
 
 	char letter = (char)((rand() % (LETTER_MAX - LETTER_MIN)) + LETTER_MIN + 1);
 
 	// 50/50 chance to capitalize letter
 	if (rand() % 2) { letter += CAPS_DISTANCE; }
+
+	if (logLevel >= LogLevel::EVERYTHING) { clog << "Generated random character " << letter << "\n\n"; }
 
 	return letter;
 }
@@ -39,7 +47,7 @@ char RandChar()
  * @brief Change execution policy between "Restricted" and "Unrestricted",
  *		  if allowed by allowExecPolicyChange
  */
-void ChangeExecutionPolicy()
+static void ChangeExecutionPolicy()
 {
 	if (currExecPolicy == "Unrestricted")
 	{
@@ -51,6 +59,7 @@ void ChangeExecutionPolicy()
 		system("powershell Set-ExecutionPolicy Unrestricted -Scope CurrentUser");
 		currExecPolicy = "Unrestricted";
 	}
+	if (logLevel >= LogLevel::DEBUG) { clog << "Changing ExecutionPolicy to " << currExecPolicy << "\n\n"; }
 }
 
 /**
@@ -59,9 +68,11 @@ void ChangeExecutionPolicy()
  * @param fileType	Extension of file name (.txt, .csv, etc...)
  * @return string	File name
  */
-string GenerateUniqueNameInDir(const string& fileType = ".txt")
+static string GenerateUniqueNameInDir(const string& fileType = ".txt")
 {
 	using namespace std::filesystem;
+
+	if (logLevel >= LogLevel::DEBUG) { clog << "Generating unique file name...\n"; }
 
 	string fileName;
 	bool uniqueName = false;
@@ -78,16 +89,21 @@ string GenerateUniqueNameInDir(const string& fileType = ".txt")
 
 	} while (!uniqueName);
 
+	if (logLevel >= LogLevel::DEBUG) { clog << "Unique file name: " << fileName << "\n\n"; }
+
 	return fileName;
 }
+
+void scripty::ScriptyLogLevel(LogLevel ll) { logLevel = ll; }
 
 /**
  * @brief Seeds random number generator
  *
  * @param seed
  */
-void SeedGenerator(unsigned int seed)
+void scripty::SeedGenerator(unsigned int seed)
 {
+	if (logLevel >= LogLevel::DEBUG) { clog << "Seeding Scripty with seed: " << seed << "\n\n"; }
 	srand(seed);
 	seeded = true;
 }
@@ -101,12 +117,14 @@ void SeedGenerator(unsigned int seed)
  * @param FN_LEN							Length of temporary file names
  * @return									Whether Scripty successfully initialized
  */
-bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned int FN_LEN)
+bool scripty::ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned int fnLen)
 {
 	using namespace std;
 	using namespace std::filesystem;
 
-	if (FN_LEN >= 10) { FILE_NAME_LEN = FN_LEN; }
+	if (logLevel >= LogLevel::NOTIFICATIONS) { clog << "Initializing Scripty...\n\n"; }
+
+	if (fnLen > 10) { FILE_NAME_LEN = fnLen; }
 	allowExecPolicyChange = changeExecutionPolicyAllowed;
 
 	if (!seeded) { SeedGenerator(seed); }  // Seed random number generator
@@ -129,7 +147,16 @@ bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned 
 	currExecPolicy = origExecPolicy;
 
 	// Determine if scripts are runnable based on execution policy
-	if (result != "Unrestricted" && !allowExecPolicyChange) { return false; }
+	if (result != "Unrestricted" && !allowExecPolicyChange) 
+	{
+		if (logLevel > LogLevel::NONE)
+		{
+			clog << "Scripty initialization failed. The current user's execution policy ";
+			clog << "does not allow for scripts to run.\nTo allow Scripty to modify the execution policy, ";
+			clog << "rerun ScriptyInit with parameter 'true'\n\n";
+		}
+		return false; 
+	}
 	return true;
 }
 
@@ -139,7 +166,7 @@ bool ScriptyInit(bool changeExecutionPolicyAllowed, unsigned int seed, unsigned 
  * @param script    script to run as istream
  * @return          results of script as stringstream
  */
-stringstream runScript(istream& script)
+stringstream scripty::runScript(istream& script)
 {
 	using namespace std;
 	using namespace std::filesystem;
@@ -164,10 +191,13 @@ stringstream runScript(istream& script)
 	string scriptFN = GenerateUniqueNameInDir(".ps1");
 	ofstream scriptFile(scriptFN);
 
+	if (logLevel >= LogLevel::NOTIFICATIONS) { clog << "Running script...\n"; }
+
 	// Write script to file
 	string line;
 	while (getline(script, line))
 	{
+		if (logLevel >= LogLevel::NOTIFICATIONS) { clog << line << "\n"; }
 		scriptFile << line << "\n";
 	}
 
@@ -178,6 +208,8 @@ stringstream runScript(istream& script)
 	system(string("powershell ./" + scriptFN + " > " + resFN).c_str());
 
 	remove(scriptFN);
+
+	if (logLevel >= LogLevel::NOTIFICATIONS) { clog << "\n"; }
 
 	// Switch execution policy back to starting value
 	if (currExecPolicy != origExecPolicy) { ChangeExecutionPolicy(); }
@@ -194,3 +226,11 @@ stringstream runScript(istream& script)
 
 	return resStream;
 }
+
+stringstream scripty::runScript(const string& script)
+{
+	std::istringstream ss(script);
+	return runScript(ss);
+}
+
+
