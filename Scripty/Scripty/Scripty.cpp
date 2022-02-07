@@ -230,3 +230,10 @@ stringstream runScript(const string& script)
 	std::istringstream ss(script);
 	return runScript(ss);
 }
+
+stringstream runScript(istream& script, bool(*SuccessCondition(const string&&)))
+{
+	stringstream res = runScript(script);
+	if (!SuccessCondition(res.str())) { res.setstate(std::ios_base::failbit); }
+	return res;
+}

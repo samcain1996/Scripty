@@ -60,3 +60,11 @@ extern SCRIPTY_API std::stringstream runScript(std::istream& script);
 	* @return          results of script as stringstream
 	*/
 extern SCRIPTY_API std::stringstream runScript(const std::string& script);
+
+/**
+	* @brief Runs script and returns results as stringstream
+	*
+	* @param script    script to run as string
+	* @return          results of script as stringstream
+	*/
+extern SCRIPTY_API std::stringstream runScript(std::istream& script, bool(*SuccessCondition(const std::string&&)));
