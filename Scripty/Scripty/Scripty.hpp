@@ -36,7 +36,7 @@ extern SCRIPTY_API bool ScriptyInit(bool changeExecutionPolicyAllowed = false, u
 	*
 	* @param ll		Logging level, default only logs notifications
 	*/
-extern SCRIPTY_API void ScriptyScriptyLogLevel(ScriptyLogLevel logLvl = ScriptyLogLevel::NOTIFICATIONS);
+extern SCRIPTY_API void ScriptyChangeLogLevel(ScriptyLogLevel logLvl = ScriptyLogLevel::NOTIFICATIONS);
 
 /**
 	 * @brief          Seeds random number generator for file generation

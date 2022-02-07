@@ -92,7 +92,7 @@ static string GenerateUniqueNameInDir(const string& fileType = ".txt")
 	return fileName;
 }
 
-void ScriptyScriptyLogLevel(ScriptyLogLevel ll) { logLevel = ll; }
+void ScriptyChangeLogLevel(ScriptyLogLevel ll) { logLevel = ll; }
 
 /**
  * @brief Seeds random number generator
