@@ -2,7 +2,6 @@
 *.*
 
 # Do Not Ignore Source Files in Scripty/
-!Scripty/Scripty/*.h
-!Scripty/Scripty/*.cpp
-
-!temp/test.txt
+!src/*.h
+!src/*.cpp
+!*.md
