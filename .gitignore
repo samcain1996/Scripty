@@ -5,3 +5,4 @@
 !src/*.h
 !src/*.cpp
 !*.md
+!.gitignore
