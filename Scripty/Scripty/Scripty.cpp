@@ -385,6 +385,8 @@ void Scripty::ChangeExecutionPolicy()
 
 #endif 
 
+// C-compatible Interface
+
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
   Function: SeedGenerator
 
